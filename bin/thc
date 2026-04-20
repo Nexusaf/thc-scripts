@@ -1,26 +1,63 @@
 #!/usr/bin/zsh
 
-# Core THC-OS Hub Command
+# THC-OS: Hub Central de Comandos
+# Funciona como o ponto de entrada principal do sistema THC.
 
-MAGENTA='\e[1;35m'
-CYAN='\e[1;36m'
-YELLOW='\e[1;33m'
-GREEN='\e[1;32m'
+# ── Paleta de Cores ──────────────────────────────────────────
+C_CYAN='\e[1;36m'
+C_MAGENTA='\e[1;35m'
+C_YELLOW='\e[1;33m'
+C_GREEN='\e[1;32m'
+C_WHITE='\e[1;37m'
+C_DIM='\e[2;37m'
 RESET='\e[0m'
 BOLD='\e[1m'
 
-echo -e "${CYAN}    _______ __  __ _____ "
-echo -e "${CYAN}   /_  __// // / / ___/ "
-echo -e "${CYAN}    / /  / __  // /__   "
-echo -e "${CYAN}   /_/  /_/ /_/ \___/   ${RESET}"
-echo -e "${BOLD}${MAGENTA}   O P E R A T I O N S  ${RESET}"
+THC_VERSION="0.4.0"
+THC_CODENAME="Phantom Kernel"
+
+# ── Header ───────────────────────────────────────────────────
 echo ""
-echo -e "${YELLOW} ► THC Core is Active and Responding.${RESET}"
+echo -e "  ${C_CYAN}████████╗${C_MAGENTA}██╗  ██╗${C_CYAN}██████╗ ${RESET}"
+echo -e "  ${C_CYAN}   ██╔══╝${C_MAGENTA}██║  ██║${C_CYAN}██╔════╝${RESET}"
+echo -e "  ${C_CYAN}   ██║   ${C_MAGENTA}███████║${C_CYAN}██║     ${RESET}  ${C_DIM}Operating System${RESET}"
+echo -e "  ${C_CYAN}   ██║   ${C_MAGENTA}██╔══██║${C_CYAN}██║     ${RESET}  ${C_WHITE}v${THC_VERSION}${RESET} ${C_DIM}«${THC_CODENAME}»${RESET}"
+echo -e "  ${C_CYAN}   ██║   ${C_MAGENTA}██║  ██║${C_CYAN}╚██████╗${RESET}"
+echo -e "  ${C_CYAN}   ╚═╝   ${C_MAGENTA}╚═╝  ╚═╝${C_CYAN} ╚═════╝${RESET}"
 echo ""
-echo -e "${BOLD}Available Sub-Commands:${RESET}"
-echo -e "  ${GREEN}thc-info${RESET}    : Exibe as especificações profundas do sistema"
-echo -e "  ${GREEN}thc-health${RESET}  : Monitora métricas de memória, disco e uptime"
-echo -e "  ${GREEN}thc-paths${RESET}   : Mapeia e explica a raiz física /thc/ do SO"
+
+# ── Status do Core ───────────────────────────────────────────
+THC_CMDS=$(ls /thc/bin/ 2>/dev/null | wc -l)
+THC_LOGS=$(wc -l < /thc/vault/login_history.log 2>/dev/null || echo "0")
+THC_UPTIME=$(uptime -p | sed 's/up //')
+
+echo -e "  ${C_CYAN}┌─ Core Status ──────────────────────────────────┐${RESET}"
+echo -e "  ${C_CYAN}│${RESET}  ${C_GREEN}●${RESET} Sistema     ${C_GREEN}ONLINE${RESET} — ${C_DIM}${THC_UPTIME}${RESET}"
+echo -e "  ${C_CYAN}│${RESET}  ${C_GREEN}●${RESET} Comandos    ${C_WHITE}${THC_CMDS} disponíveis em /thc/bin${RESET}"
+echo -e "  ${C_CYAN}│${RESET}  ${C_GREEN}●${RESET} Vault Log   ${C_WHITE}${THC_LOGS} eventos registrados${RESET}"
+echo -e "  ${C_CYAN}└────────────────────────────────────────────────┘${RESET}"
 echo ""
-echo -e "${CYAN}Usage:${RESET} Digite qualquer um dos subcomandos acima para interagir."
+
+# ── Comandos: Auto-descoberta dinâmica ───────────────────────
+echo -e "  ${BOLD}${C_YELLOW}Comandos Disponíveis:${RESET}"
+echo -e "  ${C_CYAN}┌────────────────────────────────────────────────┐${RESET}"
+
+for cmd in /thc/bin/thc-*; do
+    cmd_name=$(basename "$cmd")
+    case "$cmd_name" in
+        thc-info)      desc="Exibe especificações e identidade do sistema" ;;
+        thc-health)    desc="Monitora memória, disco e carga do sistema"   ;;
+        thc-paths)     desc="Mapeia a estrutura de diretórios /thc/"       ;;
+        thc-motd)      desc="Exibe a tela de identidade visual do login"   ;;
+        thc-autologin) desc="Automação — registra histórico de logins"     ;;
+        thc-autocron)  desc="Heartbeat — snapshot silencioso de saúde"     ;;
+        *)             desc="Comando nativo do sistema"                     ;;
+    esac
+    echo -e "  ${C_CYAN}│${RESET}  ${C_GREEN}${cmd_name}${RESET}"
+    echo -e "  ${C_CYAN}│${RESET}    ${C_DIM}↳ ${desc}${RESET}"
+done
+
+echo -e "  ${C_CYAN}└────────────────────────────────────────────────┘${RESET}"
+echo ""
+echo -e "  ${C_DIM}Vault:${RESET} ${C_WHITE}/thc/vault/${RESET}  ${C_DIM}│  Scripts:${RESET} ${C_WHITE}/thc/scripts/${RESET}"
 echo ""
