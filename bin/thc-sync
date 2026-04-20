@@ -15,7 +15,7 @@ RESET='\e[0m'
 BOLD='\e[1m'
 
 # ── Configuração ─────────────────────────────────────────────
-REPO_DIR="/thc/scripts"
+REPO_DIR="/thc/scripts/thc-scripts"
 BIN_SRC="${REPO_DIR}/bin"
 BIN_DEST="/thc/bin"
 VAULT_LOG="/thc/vault/sync_history.log"
