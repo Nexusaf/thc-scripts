@@ -9,10 +9,10 @@ YELLOW='\e[1;33m'
 RED='\e[1;31m'
 RESET='\e[0m'
 
-log()  { echo -e "${CYAN}[THC]${RESET} $1" }
-ok()   { echo -e "${GREEN}[OK]${RESET}  $1" }
-warn() { echo -e "${YELLOW}[!]${RESET}   $1" }
-err()  { echo -e "${RED}[ERR]${RESET} $1" }
+log()  { echo -e "${CYAN}[THC]${RESET} $1"; }
+ok()   { echo -e "${GREEN}[OK]${RESET}  $1"; }
+warn() { echo -e "${YELLOW}[!]${RESET}   $1"; }
+err()  { echo -e "${RED}[ERR]${RESET} $1"; }
 
 echo ""
 echo -e "${GREEN}  ╔══════════════════════════════════════╗${RESET}"
