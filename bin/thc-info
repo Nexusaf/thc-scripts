@@ -15,7 +15,7 @@ echo -e "${BOLD}${MAGENTA}       THC-OS SYSTEM INFORMATION        ${RESET}"
 echo -e "${CYAN}========================================${RESET}"
 
 OS_NAME=$(grep -E '^(NAME)=' /etc/os-release | cut -d '=' -f 2 | tr -d '"')
-HOST=$(hostname)
+HOST=$(cat /etc/hostname)
 KERNEL=$(uname -r)
 ARCH=$(uname -m)
 USER_NAME=$(whoami)
