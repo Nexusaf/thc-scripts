@@ -1,0 +1,166 @@
+#!/usr/bin/zsh
+
+# THC-OS: thc-watch — Live System Monitor Dashboard
+# Atualiza a cada segundo usando buffer alternativo do terminal (sem flicker)
+
+# ── Cores ────────────────────────────────────────────────────
+C_CYAN='\e[1;36m'
+C_MAGENTA='\e[1;35m'
+C_GREEN='\e[1;32m'
+C_YELLOW='\e[1;33m'
+C_RED='\e[1;31m'
+C_WHITE='\e[1;37m'
+C_DIM='\e[2;37m'
+RESET='\e[0m'
+BOLD='\e[1m'
+
+# ── Limpeza ao sair (Ctrl+C) ─────────────────────────────────
+cleanup() {
+    tput cnorm    # Restaura o cursor
+    tput rmcup    # Restaura o buffer original do terminal
+    echo ""
+    echo -e "${C_GREEN}  [THC-WATCH] Sessão encerrada.${RESET}"
+    echo ""
+    exit 0
+}
+trap cleanup INT TERM
+
+# ── Barra de Progresso Colorida ──────────────────────────────
+make_bar() {
+    local pct=$1
+    local width=24
+    local filled=$(( pct * width / 100 ))
+    (( filled < 0  )) && filled=0
+    (( filled > width )) && filled=$width
+    local empty=$(( width - filled ))
+
+    local color
+    if   (( pct >= 80 )); then color="$C_RED"
+    elif (( pct >= 60 )); then color="$C_YELLOW"
+    else color="$C_GREEN"
+    fi
+
+    local bar="${color}"
+    local i
+    for (( i=0; i<filled; i++ )); do bar+="█"; done
+    bar+="${C_DIM}"
+    for (( i=0; i<empty; i++ )); do bar+="░"; done
+    bar+="${RESET}"
+    echo -n "$bar"
+}
+
+# ── CPU: Leitura delta de /proc/stat ──────────────────────────
+prev_total=0
+prev_idle=0
+cpu_pct=0
+
+init_cpu() {
+    local vals
+    vals=($(awk '/^cpu /{print $2,$3,$4,$5,$6,$7,$8; exit}' /proc/stat))
+    prev_idle=${vals[4]}
+    local t=0
+    for v in $vals; do (( t += v )); done
+    prev_total=$t
+}
+
+get_cpu_pct() {
+    local vals
+    vals=($(awk '/^cpu /{print $2,$3,$4,$5,$6,$7,$8; exit}' /proc/stat))
+    local idle=${vals[4]}
+    local total=0
+    for v in $vals; do (( total += v )); done
+
+    local dtotal=$(( total - prev_total ))
+    local didle=$(( idle  - prev_idle  ))
+
+    prev_total=$total
+    prev_idle=$idle
+
+    if (( dtotal > 0 )); then
+        cpu_pct=$(( (dtotal - didle) * 100 / dtotal ))
+    else
+        cpu_pct=0
+    fi
+}
+
+# ── Inicialização do Terminal ─────────────────────────────────
+tput smcup    # Buffer alternativo (preserva o terminal original)
+tput civis    # Esconde o cursor durante o loop
+init_cpu
+
+# ── Loop Principal ────────────────────────────────────────────
+while true; do
+
+    get_cpu_pct
+
+    # Memória
+    mem_vals=($(free -m | awk 'NR==2{print $2,$3}'))
+    mem_total=${mem_vals[1]}
+    mem_used=${mem_vals[2]}
+    mem_pct=0
+    (( mem_total > 0 )) && mem_pct=$(( mem_used * 100 / mem_total ))
+
+    # Disco raiz
+    disk_vals=($(df -h / | awk 'NR==2{print $2,$3,$5}'))
+    disk_total=${disk_vals[1]}
+    disk_used=${disk_vals[2]}
+    disk_pct=${disk_vals[3]/\%/}
+
+    # Load average
+    load=$(awk '{print $1"  "$2"  "$3}' /proc/loadavg)
+
+    # Total de processos
+    procs=$(awk -F'/' '{print $2}' /proc/loadavg | awk '{print $1}')
+
+    # IP da rede
+    net_ip=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v 127 | head -1)
+    [[ -z "$net_ip" ]] && net_ip="${C_RED}sem conexão${RESET}"
+
+    # Uptime
+    uptime_str=$(uptime -p | sed 's/up //')
+
+    # Timestamp atual
+    timestamp=$(date '+%H:%M:%S')
+    datestamp=$(date '+%d/%m/%Y')
+
+    # Último log do Vault
+    last_log="Sem registros no vault"
+    [[ -f /thc/vault/login_history.log ]] && \
+        last_log=$(tail -1 /thc/vault/login_history.log 2>/dev/null)
+    last_log="${last_log:0:50}"
+
+    # ── Renderização ─────────────────────────────────────────
+    tput cup 0 0
+
+    echo -e "${C_CYAN}  ╔══════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${C_CYAN}  ║${RESET} ${BOLD}${C_MAGENTA}     T H C - O S   ·   L I V E   W A T C H ${C_DIM}  [^C]  ${C_CYAN}║${RESET}"
+    echo -e "${C_CYAN}  ╠═══════════════════╦══════════════════════════════════╣${RESET}"
+    echo -e "${C_CYAN}  ║${RESET} ${C_DIM}${datestamp}${RESET}         ${C_CYAN}║${RESET} ${C_DIM}Atualizado às${RESET} ${C_WHITE}${timestamp}${RESET}              ${C_CYAN}║${RESET}"
+    echo -e "${C_CYAN}  ╠═══════════════════╩══════════════════════════════════╣${RESET}"
+
+    # CPU
+    printf "  ${C_CYAN}║${RESET}  ${C_YELLOW}CPU   ${RESET}"
+    make_bar $cpu_pct
+    printf "  ${C_WHITE}%3d%%${RESET}\n" $cpu_pct
+
+    # RAM
+    printf "  ${C_CYAN}║${RESET}  ${C_YELLOW}RAM   ${RESET}"
+    make_bar $mem_pct
+    printf "  ${C_WHITE}%3d%%  ${C_DIM}%dMB / %dMB${RESET}\n" $mem_pct $mem_used $mem_total
+
+    # DISK
+    printf "  ${C_CYAN}║${RESET}  ${C_YELLOW}DISCO ${RESET}"
+    make_bar $disk_pct
+    printf "  ${C_WHITE}%3d%%  ${C_DIM}%s / %s${RESET}\n" $disk_pct $disk_used $disk_total
+
+    echo -e "${C_CYAN}  ╠══════════════════════════════════════════════════════╣${RESET}"
+    echo -e "${C_CYAN}  ║${RESET}  ${C_YELLOW}LOAD  ${C_WHITE}${load}${RESET}"
+    echo -e "${C_CYAN}  ║${RESET}  ${C_YELLOW}PROC  ${C_WHITE}${procs} processos${RESET}"
+    echo -e "${C_CYAN}  ║${RESET}  ${C_YELLOW}REDE  ${C_WHITE}${net_ip}${RESET}"
+    echo -e "${C_CYAN}  ║${RESET}  ${C_YELLOW}UP    ${C_WHITE}${uptime_str}${RESET}"
+    echo -e "${C_CYAN}  ╠══════════════════════════════════════════════════════╣${RESET}"
+    echo -e "${C_CYAN}  ║${RESET}  ${C_DIM}VAULT ›${RESET} ${C_DIM}${last_log}${RESET}"
+    echo -e "${C_CYAN}  ╚══════════════════════════════════════════════════════╝${RESET}"
+
+    sleep 1
+done
