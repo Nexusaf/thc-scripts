@@ -1,0 +1,122 @@
+#!/usr/bin/zsh
+
+# THC-OS: thc-sync — Sincronizador de Scripts
+# Puxa as atualizações do repositório GitHub e deploya automaticamente
+# os binários na VM, eliminando passos manuais.
+
+# ── Cores ────────────────────────────────────────────────────
+C_CYAN='\e[1;36m'
+C_GREEN='\e[1;32m'
+C_YELLOW='\e[1;33m'
+C_RED='\e[1;31m'
+C_WHITE='\e[1;37m'
+C_DIM='\e[2;37m'
+RESET='\e[0m'
+BOLD='\e[1m'
+
+# ── Configuração ─────────────────────────────────────────────
+REPO_DIR="/thc/scripts"
+BIN_SRC="${REPO_DIR}/bin"
+BIN_DEST="/thc/bin"
+VAULT_LOG="/thc/vault/sync_history.log"
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
+log()  { echo -e "${C_CYAN}[SYNC]${RESET} $1"; }
+ok()   { echo -e "${C_GREEN}[OK]${RESET}   $1"; }
+warn() { echo -e "${C_YELLOW}[!]${RESET}    $1"; }
+err()  { echo -e "${C_RED}[ERR]${RESET}  $1"; }
+
+# ── Header ───────────────────────────────────────────────────
+echo ""
+echo -e "${C_CYAN}  ╔══════════════════════════════════════════════╗${RESET}"
+echo -e "${C_CYAN}  ║${RESET} ${BOLD}${C_CYAN}   THC-OS · SYNC ENGINE${RESET}                     ${C_CYAN}║${RESET}"
+echo -e "${C_CYAN}  ╚══════════════════════════════════════════════╝${RESET}"
+echo ""
+
+# ── Verificações de segurança ─────────────────────────────────
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+    err "Repositório git não encontrado em ${REPO_DIR}."
+    err "Clone o repo primeiro: git clone <url> ${REPO_DIR}"
+    exit 1
+fi
+
+if [[ ! -d "$BIN_DEST" ]]; then
+    err "Pasta ${BIN_DEST} não existe. Execute o setup do Block 02 primeiro."
+    exit 1
+fi
+
+# ── Passo 1: Git Pull ─────────────────────────────────────────
+log "Conectando ao repositório remoto..."
+cd "$REPO_DIR" || exit 1
+
+git_output=$(git pull 2>&1)
+git_status=$?
+
+if [[ $git_status -ne 0 ]]; then
+    err "Falha no git pull:"
+    echo "$git_output"
+    exit 1
+fi
+
+if echo "$git_output" | grep -q "Already up to date"; then
+    ok "Repositório já estava atualizado. Nenhum arquivo novo."
+    already_updated=true
+else
+    ok "Atualizado com sucesso!"
+    already_updated=false
+    echo ""
+    echo -e "${C_DIM}  Mudanças recebidas:${RESET}"
+    echo "$git_output" | grep -E '^\s+(create|delete|rename|modify)' || \
+    git diff --name-only HEAD@{1} HEAD 2>/dev/null | while read f; do
+        echo -e "  ${C_DIM}►${RESET} ${f}"
+    done
+    echo ""
+fi
+
+# ── Passo 2: Deploy dos Binários ──────────────────────────────
+log "Verificando novos comandos em ${BIN_SRC}..."
+
+deployed=0
+skipped=0
+updated=0
+
+for src_file in "${BIN_SRC}"/thc-*; do
+    [[ ! -f "$src_file" ]] && continue
+    cmd_name=$(basename "$src_file")
+    dest_file="${BIN_DEST}/${cmd_name}"
+
+    if [[ -f "$dest_file" ]]; then
+        # Checa se o arquivo mudou
+        if ! diff -q "$src_file" "$dest_file" &>/dev/null; then
+            sudo cp "$src_file" "$dest_file"
+            sudo chmod +x "$dest_file"
+            sudo dos2unix "$dest_file" &>/dev/null
+            echo -e "  ${C_YELLOW}↻${RESET}  ${C_WHITE}${cmd_name}${RESET} ${C_DIM}atualizado${RESET}"
+            (( updated++ ))
+        else
+            (( skipped++ ))
+        fi
+    else
+        sudo cp "$src_file" "$dest_file"
+        sudo chmod +x "$dest_file"
+        sudo dos2unix "$dest_file" &>/dev/null
+        echo -e "  ${C_GREEN}+${RESET}  ${C_WHITE}${cmd_name}${RESET} ${C_DIM}instalado pela primeira vez${RESET}"
+        (( deployed++ ))
+    fi
+done
+
+# ── Passo 3: Resumo ───────────────────────────────────────────
+echo ""
+echo -e "${C_CYAN}  ─────────────────────────────────────────────${RESET}"
+echo -e "  ${C_GREEN}Novos:${RESET}       ${deployed} comando(s)"
+echo -e "  ${C_YELLOW}Atualizados:${RESET} ${updated} comando(s)"
+echo -e "  ${C_DIM}Sem mudança:${RESET} ${skipped} comando(s)"
+echo -e "${C_CYAN}  ─────────────────────────────────────────────${RESET}"
+echo ""
+
+# ── Passo 4: Registra no Vault ────────────────────────────────
+echo "[${TIMESTAMP}] SYNC — +${deployed} novos | ${updated} atualizados | ${skipped} sem mudança" >> "$VAULT_LOG"
+
+ok "Sync completo. Todos os comandos estão prontos para uso."
+echo -e "  ${C_DIM}Digite ${RESET}${C_GREEN}thc${RESET}${C_DIM} para ver os comandos disponíveis.${RESET}"
+echo ""
