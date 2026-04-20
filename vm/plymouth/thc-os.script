@@ -1,0 +1,7 @@
+#!/usr/bin/zsh
+
+# THC-OS Plymouth Theme: Script Principal
+# Exibido enquanto o sistema inicializa após o GRUB
+
+Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
+Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);

@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=thc-os
+Description=THC-OS Boot Splash — Cannabis Neon Identity
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/thc-os
+ScriptFile=/usr/share/plymouth/themes/thc-os/thc-os.script
