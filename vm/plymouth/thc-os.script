@@ -1,7 +1,22 @@
-#!/usr/bin/zsh
+# Plymouth Script — THC-OS Boot Theme
+# Linguagem: Plymouth Script API (não é Bash/Zsh)
 
-# THC-OS Plymouth Theme: Script Principal
-# Exibido enquanto o sistema inicializa após o GRUB
+# Cor de fundo: preto puro
+Window.SetBackgroundTopColor(0, 0, 0);
+Window.SetBackgroundBottomColor(0, 0, 0);
 
-Window.SetBackgroundTopColor(0.0, 0.0, 0.0);
-Window.SetBackgroundBottomColor(0.0, 0.0, 0.0);
+# Carrega a imagem da folha/logo central
+logo.image = Image("bootimg.png");
+logo.sprite = Sprite(logo.image);
+
+# Centraliza a imagem na tela
+logo.sprite.SetX(Window.GetWidth()  / 2 - logo.image.GetWidth()  / 2);
+logo.sprite.SetY(Window.GetHeight() / 2 - logo.image.GetHeight() / 2 - 40);
+logo.sprite.SetOpacity(1);
+
+# Texto fixo abaixo do logo
+message_image = Image.Text("Initializing THC-OS...", 0.0, 1.0, 0.53);
+message_sprite = Sprite(message_image);
+message_sprite.SetX(Window.GetWidth()  / 2 - message_image.GetWidth()  / 2);
+message_sprite.SetY(Window.GetHeight() / 2 + logo.image.GetHeight() / 2);
+message_sprite.SetOpacity(0.6);
