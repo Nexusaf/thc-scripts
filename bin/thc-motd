@@ -1,0 +1,58 @@
+#!/usr/bin/zsh
+
+# THC-OS: Sistema de Identidade Visual de Login
+# Executado automaticamente pelo ~/.zshrc em cada login.
+
+# ── Paleta de Cores ──────────────────────────────────────────
+C_CYAN='\e[1;36m'
+C_MAGENTA='\e[1;35m'
+C_YELLOW='\e[1;33m'
+C_GREEN='\e[1;32m'
+C_RED='\e[1;31m'
+C_WHITE='\e[1;37m'
+C_DIM='\e[2;37m'
+RESET='\e[0m'
+BOLD='\e[1m'
+
+# ── Limpeza de Tela ──────────────────────────────────────────
+clear
+
+# ── Logotipo ASCII ───────────────────────────────────────────
+echo -e "${C_CYAN}"
+echo "   ████████╗██╗  ██╗ ██████╗      ██████╗ ███████╗"
+echo "      ██╔══╝██║  ██║██╔════╝     ██╔═══██╗██╔════╝"
+echo "      ██║   ███████║██║          ██║   ██║███████╗"
+echo "      ██║   ██╔══██║██║          ██║   ██║╚════██║"
+echo "      ██║   ██║  ██║╚██████╗     ╚██████╔╝███████║"
+echo "      ╚═╝   ╚═╝  ╚═╝ ╚═════╝      ╚═════╝ ╚══════╝"
+echo -e "${RESET}"
+echo -e "${C_DIM}     ░░  Operating System — Identity Core Active  ░░${RESET}"
+echo ""
+
+# ── Linha Separadora ─────────────────────────────────────────
+echo -e "${C_CYAN}  ┌────────────────────────────────────────────────┐${RESET}"
+
+# ── Coleta de Dados do Sistema ───────────────────────────────
+THC_USER=$(whoami)
+THC_HOST=$(cat /etc/hostname)
+THC_KERNEL=$(uname -r)
+THC_DATE=$(date '+%d/%m/%Y — %H:%M')
+THC_UPTIME=$(uptime -p | sed 's/up //')
+THC_DISK=$(df -h / | awk 'NR==2 {print $3 " / " $2 " (" $5 ")"}')
+THC_MEM=$(free -m | awk 'NR==2 {printf "%dMB / %dMB (%.0f%%)", $3, $2, $3/$2*100}')
+THC_IP=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v 127 | head -1)
+THC_CMDS=$(ls /thc/bin/ 2>/dev/null | wc -l)
+
+# ── Painel de Identidade ─────────────────────────────────────
+echo -e "${C_CYAN}  │${RESET}  ${C_YELLOW}Usuário  ${RESET}» ${C_WHITE}${THC_USER}${C_DIM}@${THC_HOST}${RESET}"
+echo -e "${C_CYAN}  │${RESET}  ${C_YELLOW}Data     ${RESET}» ${C_WHITE}${THC_DATE}${RESET}"
+echo -e "${C_CYAN}  │${RESET}  ${C_YELLOW}Kernel   ${RESET}» ${C_WHITE}${THC_KERNEL}${RESET}"
+echo -e "${C_CYAN}  │${RESET}  ${C_YELLOW}Uptime   ${RESET}» ${C_WHITE}${THC_UPTIME}${RESET}"
+echo -e "${C_CYAN}  │${RESET}  ${C_YELLOW}Network  ${RESET}» ${C_WHITE}${THC_IP:-Sem conexão detectada}${RESET}"
+echo -e "${C_CYAN}  │${RESET}  ${C_YELLOW}Disco    ${RESET}» ${C_WHITE}${THC_DISK}${RESET}"
+echo -e "${C_CYAN}  │${RESET}  ${C_YELLOW}Memória  ${RESET}» ${C_WHITE}${THC_MEM}${RESET}"
+echo -e "${C_CYAN}  │${RESET}  ${C_YELLOW}Comandos ${RESET}» ${C_GREEN}${THC_CMDS} comandos THC disponíveis${RESET}"
+echo -e "${C_CYAN}  └────────────────────────────────────────────────┘${RESET}"
+echo ""
+echo -e "  ${C_DIM}Digite ${RESET}${C_GREEN}thc${RESET}${C_DIM} para ver os comandos disponíveis.${RESET}"
+echo ""
