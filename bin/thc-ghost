@@ -1,0 +1,139 @@
+#!/usr/bin/zsh
+
+# THC-OS: thc-ghost — Modo Furtivo
+# Apaga rastros do sistema de forma controlada e segura.
+# Uso:
+#   thc-ghost --history   → apaga histórico do terminal
+#   thc-ghost --logs      → limpa os logs do vault
+#   thc-ghost --all       → apaga tudo (modo pânico)
+#   thc-ghost             → exibe menu interativo
+
+# ── Cores ────────────────────────────────────────────────────
+C_GREEN='\e[1;32m'
+C_RED='\e[1;31m'
+C_YELLOW='\e[1;33m'
+C_CYAN='\e[1;36m'
+C_DIM='\e[2;37m'
+C_WHITE='\e[1;37m'
+RESET='\e[0m'
+BOLD='\e[1m'
+
+VAULT_DIR="/thc/vault"
+HISTFILE_ZSH="${HISTFILE:-$HOME/.zsh_history}"
+
+# ── Animação de "Apagando" ────────────────────────────────────
+wipe_anim() {
+    local label="$1"
+    printf "  ${C_DIM}Apagando %-28s${RESET}" "$label"
+    for i in {1..10}; do
+        printf "${C_RED}▓${RESET}"
+        sleep 0.04
+    done
+    printf " ${C_GREEN}LIMPO${RESET}\n"
+}
+
+# ── Funções de Limpeza ────────────────────────────────────────
+wipe_history() {
+    wipe_anim "histórico do terminal"
+    : > "$HISTFILE_ZSH"
+    fc -p "$HISTFILE_ZSH" 2>/dev/null
+    history -p 2>/dev/null || true
+}
+
+wipe_logs() {
+    for logfile in "${VAULT_DIR}"/*.log; do
+        [[ -f "$logfile" ]] || continue
+        wipe_anim "$(basename $logfile)"
+        : > "$logfile"
+    done
+}
+
+wipe_all() {
+    wipe_history
+    wipe_logs
+    wipe_anim "temp files (/tmp/thc-*)"
+    rm -f /tmp/thc-* 2>/dev/null
+}
+
+# ── Header ───────────────────────────────────────────────────
+print_header() {
+    echo ""
+    echo -e "${C_RED}  ╔══════════════════════════════════════════════╗${RESET}"
+    echo -e "${C_RED}  ║${RESET} ${BOLD}${C_RED}         T H C - G H O S T  M O D E${RESET}           ${C_RED}║${RESET}"
+    echo -e "${C_RED}  ╚══════════════════════════════════════════════╝${RESET}"
+    echo ""
+}
+
+# ── Menu Interativo ───────────────────────────────────────────
+print_menu() {
+    echo -e "  ${C_WHITE}Selecione o alvo de limpeza:${RESET}"
+    echo ""
+    echo -e "  ${C_YELLOW}[1]${RESET}  Histórico do terminal ${C_DIM}(~/.zsh_history)${RESET}"
+    echo -e "  ${C_YELLOW}[2]${RESET}  Logs do Vault ${C_DIM}(/thc/vault/*.log)${RESET}"
+    echo -e "  ${C_RED}[3]${RESET}  ${BOLD}Modo PÂNICO${RESET} ${C_DIM}— apaga tudo acima${RESET}"
+    echo -e "  ${C_DIM}[q]${RESET}  ${C_DIM}Cancelar e sair${RESET}"
+    echo ""
+    printf "  ${C_CYAN}►${RESET} "
+    read -r choice
+}
+
+# ── Confirmação para modo pânico ──────────────────────────────
+confirm_panic() {
+    echo ""
+    echo -e "  ${C_RED}${BOLD}ATENÇÃO: Isso apagará TODOS os rastros. Confirmar?${RESET}"
+    printf "  ${C_DIM}Digite${RESET} ${C_RED}SIM${RESET} ${C_DIM}para continuar:${RESET} "
+    read -r confirm
+    [[ "$confirm" == "SIM" ]]
+}
+
+# ── Finalização ───────────────────────────────────────────────
+print_done() {
+    echo ""
+    echo -e "  ${C_GREEN}${BOLD}Ghost mode concluído. Rastros eliminados.${RESET}"
+    echo -e "  ${C_DIM}O sistema continua operacional.${RESET}"
+    echo ""
+}
+
+# ── Entrada Principal ─────────────────────────────────────────
+print_header
+
+case "$1" in
+    --history)
+        echo -e "  ${C_DIM}Modo: histórico${RESET}\n"
+        wipe_history
+        print_done
+        ;;
+    --logs)
+        echo -e "  ${C_DIM}Modo: logs do vault${RESET}\n"
+        wipe_logs
+        print_done
+        ;;
+    --all)
+        echo -e "  ${C_DIM}Modo: pânico total${RESET}\n"
+        if confirm_panic; then
+            echo ""
+            wipe_all
+            print_done
+        else
+            echo -e "  ${C_YELLOW}Operação cancelada.${RESET}\n"
+        fi
+        ;;
+    *)
+        print_menu
+        case "$choice" in
+            1) wipe_history ; print_done ;;
+            2) wipe_logs    ; print_done ;;
+            3)
+                if confirm_panic; then
+                    echo ""
+                    wipe_all
+                    print_done
+                else
+                    echo -e "  ${C_YELLOW}Operação cancelada.${RESET}\n"
+                fi
+                ;;
+            q|Q) echo -e "\n  ${C_DIM}Ghost mode cancelado.${RESET}\n" ;;
+            *) echo -e "\n  ${C_RED}Opção inválida.${RESET}\n" ;;
+        esac
+        ;;
+esac
