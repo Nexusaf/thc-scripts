@@ -1,0 +1,25 @@
+#!/usr/bin/zsh
+
+# THC Command: thc-health
+# Basic system check (disk, memory, uptime)
+
+MAGENTA='\e[1;35m'
+CYAN='\e[1;36m'
+YELLOW='\e[1;33m'
+RESET='\e[0m'
+BOLD='\e[1m'
+
+echo -e "${CYAN}========================================${RESET}"
+echo -e "${BOLD}${MAGENTA}           THC SYSTEM HEALTH            ${RESET}"
+echo -e "${CYAN}========================================${RESET}"
+
+echo -e "\n${YELLOW}[ UPTIME ]${RESET}"
+uptime -p
+
+echo -e "\n${YELLOW}[ MEMORY USAGE ]${RESET}"
+free -h
+
+echo -e "\n${YELLOW}[ DISK USAGE (/) ]${RESET}"
+df -h /
+
+echo -e "\n${CYAN}========================================${RESET}"

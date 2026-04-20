@@ -1,0 +1,27 @@
+#!/usr/bin/zsh
+
+# THC Command: thc-paths
+# Lists THC directory structure
+
+MAGENTA='\e[1;35m'
+CYAN='\e[1;36m'
+YELLOW='\e[1;33m'
+GREEN='\e[1;32m'
+RESET='\e[0m'
+BOLD='\e[1m'
+
+echo -e "${CYAN}========================================${RESET}"
+echo -e "${BOLD}${MAGENTA}          THC DIRECTORY TREE            ${RESET}"
+echo -e "${CYAN}========================================${RESET}"
+
+echo -e "${GREEN}/thc${RESET}"
+echo -e " ├── ${YELLOW}core${RESET}     (System core files)"
+echo -e " ├── ${YELLOW}tools${RESET}    (External utilities and binaries)"
+echo -e " ├── ${YELLOW}vault${RESET}    (Secure storage and backups)"
+echo -e " ├── ${YELLOW}scripts${RESET}  (Sync repo & automation scripts)"
+echo -e " └── ${YELLOW}bin${RESET}      (Executable commands and symlinks)"
+
+echo ""
+echo -e "${CYAN}Actual content of /thc:${RESET}"
+ls -lh --color=auto /thc
+echo -e "${CYAN}========================================${RESET}"
