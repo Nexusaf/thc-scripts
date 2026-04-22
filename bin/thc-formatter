@@ -1,0 +1,71 @@
+#!/usr/bin/env zsh
+
+echo "========================================"
+echo "   THC-FORMATTER - Gerenciador de Discos"
+echo "========================================"
+echo "Dispositivos de armazenamento e partições detectados:"
+echo ""
+
+# Lista os blocos, mostrando apenas discos e partições com informações relevantes
+lsblk -p -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT | grep -E "TYPE|disk|part"
+
+echo "----------------------------------------"
+echo -n "Digite o caminho exato da PARTIÇÃO que deseja formatar (ex: /dev/sdb1) ou 'q' para cancelar: "
+read target_device
+
+# Condição de saída
+if [[ "$target_device" == "q" || -z "$target_device" ]]; then
+    echo "Operação cancelada pelo usuário."
+    exit 0
+fi
+
+# Valida se o dispositivo existe e é um bloco válido
+if [[ ! -b "$target_device" ]]; then
+    echo "Erro: O dispositivo '$target_device' não existe ou não é um dispositivo de bloco válido."
+    exit 1
+fi
+
+# Verifica se o dispositivo está montado para evitar corrupção
+if grep -q "^$target_device " /proc/mounts; then
+    echo "Aviso: O dispositivo $target_device está atualmente montado."
+    echo "Por favor, desmonte-o primeiro usando: sudo umount $target_device"
+    exit 1
+fi
+
+# Confirmação de segurança (Letras maiúsculas obrigatórias)
+echo ""
+echo "⚠️  ATENÇÃO: Você está prestes a formatar $target_device."
+echo "TODOS OS DADOS NESTA PARTIÇÃO SERÃO PERMANENTEMENTE APAGADOS."
+echo -n "Digite 'CONFIRMAR' em letras maiúsculas para prosseguir: "
+read confirmation
+
+if [[ "$confirmation" != "CONFIRMAR" ]]; then
+    echo "Palavra de segurança incorreta. Operação abortada para proteção dos dados."
+    exit 0
+fi
+
+echo ""
+echo "Sistemas de arquivos comuns: ext4 (padrão Linux), vfat (pendrives/compatibilidade), ntfs (Windows)"
+echo -n "Digite o sistema de arquivos desejado (ex: ext4): "
+read fs_type
+
+# Validação básica de sistemas de arquivos suportados
+if [[ ! "$fs_type" =~ ^(ext2|ext3|ext4|vfat|ntfs|exfat|btrfs|xfs)$ ]]; then
+    echo "Sistema de arquivos '$fs_type' não reconhecido ou não recomendado neste script simplificado."
+    exit 1
+fi
+
+echo "Iniciando formatação de $target_device como $fs_type..."
+
+# Executa o comando de formatação com elevação de privilégios
+if [[ "$fs_type" == "vfat" || "$fs_type" == "ntfs" || "$fs_type" == "exfat" ]]; then
+     sudo mkfs.$fs_type "$target_device"
+else
+     sudo mkfs.$fs_type -F "$target_device"
+fi
+
+if [[ $? -eq 0 ]]; then
+    echo "✅ Formatação concluída com sucesso no formato $fs_type!"
+else
+    echo "❌ Erro durante o processo de formatação. Verifique os privilégios e a integridade do disco."
+fi
